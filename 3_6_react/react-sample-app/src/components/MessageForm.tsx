@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { postMessage, Message } from '../client';
 import { Button, Form, Segment, TextArea } from 'semantic-ui-react';
+import Axios, { CancelTokenSource } from 'axios';
 
 interface MessageFormProps {
   channelName: string;
@@ -12,6 +13,8 @@ interface MessageFormState {
 }
 
 export class MessageForm extends React.Component<MessageFormProps, MessageFormState> {
+
+  private cancelTokenSource: CancelTokenSource;
 
   constructor(props: MessageFormProps) {
     super(props);
@@ -53,14 +56,26 @@ export class MessageForm extends React.Component<MessageFormProps, MessageFormSt
         name: 'iktakahiro'
       }
     } as Message;
-    postMessage(this.props.channelName, payload)
+
+    this.cancelTokenSource = Axios.CancelToken.source();
+    postMessage(this.props.channelName, payload, this.cancelTokenSource.token)
       .then(() => {
         this.setState({ body: '' });
-        this.props.setShouldReload(true);
       })
       .catch(err => {
         console.log(err);
+      })
+      .then(() => {
+        this.props.setShouldReload(true);
       });
   }
+  
+  public componentWillUnmount() {
+    if (this.cancelTokenSource) {
+        this.cancelTokenSource.cancel();
+    }
+    this.props.setShouldReload(false);
+  }
+
   
 }
